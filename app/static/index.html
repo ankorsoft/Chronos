@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chronos Context API</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1a1a2e; color: #eee; padding: 2rem; line-height: 1.6;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { font-size: 2rem; color: #e94560; margin-bottom: 0.5rem; }
+        h2 { font-size: 1.3rem; color: #0f3460; margin: 1.5rem 0 0.5rem; background: #16213e; padding: 0.75rem 1rem; border-radius: 6px; }
+        .subtitle { color: #888; margin-bottom: 2rem; }
+        .endpoint { background: #16213e; padding: 1rem; margin: 0.75rem 0; border-radius: 6px; border-left: 3px solid #e94560; }
+        .method { display: inline-block; width: 70px; font-weight: bold; font-size: 0.85rem; padding: 2px 6px; border-radius: 3px; text-align: center; }
+        .get { background: #1976d2; color: white; }
+        .post { background: #388e3c; color: white; }
+        .put { background: #f57c00; color: white; }
+        .delete { background: #d32f2f; color: white; }
+        .path { font-family: 'Courier New', monospace; color: #ccc; }
+        .desc { color: #aaa; margin-top: 0.4rem; font-size: 0.95rem; }
+        pre { background: #0f3460; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-size: 0.85rem; }
+        .api-docs-link { display: inline-block; background: #e94560; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin-top: 2rem; font-weight: bold; }
+        .api-docs-link:hover { background: #c73e54; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>&#9200; Chronos Context</h1>
+        <p class="subtitle">AI-powered project analysis & context generation API for LLM integration.</p>
+
+        <h2>Projects</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /projects</span>
+            <p class="desc">List all registered projects.</p>
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span><span class="path"> /projects</span>
+            <p class="desc">Register a new project. Body: {"name", "path"}.</p>
+            <pre>{
+  "name": "my-app",
+  "path": "/path/to/project"
+}</pre>
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /projects/{project_id}</span>
+            <p class="desc">Get project details.</p>
+        </div>
+        <div class="endpoint">
+            <span class="method delete">DELETE</span><span class="path"> /projects/{project_id}</span>
+            <p class="desc">Delete project and all its data.</p>
+        </div>
+
+        <h2>Snapshots</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /projects/{project_id}/snapshots</span>
+            <p class="desc">List all snapshots for a project.</p>
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /snapshots/{snapshot_id}</span>
+            <p class="desc">Get details of a specific snapshot.</p>
+        </div>
+
+        <h2>Analysis</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /projects/{project_id}/context</span>
+            <p class="desc">Get context JSON for a project (auto-analyzes if no snapshot).</p>
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span><span class="path"> /analyze</span>
+            <p class="desc">Run analysis. Query param: ?use_cache=true.</p>
+            <pre>{
+  "project_path": "/path/to/project"
+}</pre>
+        </div>
+
+        <h2>Export Formats</h2>
+        <div class="endpoint">
+            <span class="method post">POST</span><span class="path"> /projects/{project_id}/export</span>
+            <p class="desc">Export project context. Body: {"format", "max_tokens", ...}. Formats: txt, md, gpt, claude.</p>
+            <pre>{
+  "format": "gpt",
+  "include_imports": true,
+  "depth": 1
+}</pre>
+        </div>
+
+        <h2>Settings</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span><span class="path"> /projects/{project_id}/settings</span>
+            <p class="desc">Get project settings.</p>
+        </div>
+        <div class="endpoint">
+            <span class="method put">PUT</span><span class="path"> /projects/{project_id}/settings</span>
+            <p class="desc">Update project settings.</p>
+        </div>
+
+        <h2>Cache</h2>
+        <div class="endpoint">
+            <span class="method post">POST</span><span class="path"> /invalidate-cache</span>
+            <p class="desc">Invalidate analysis cache for a project.</p>
+            <pre>{
+  "project_id": 1
+}</pre>
+        </div>
+
+        <a class="api-docs-link" href="/docs">&#9998; OpenAPI Swagger Docs →</a>
+    </div>
+</body>
+</html>
