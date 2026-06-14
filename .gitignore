@@ -17,6 +17,7 @@ target/
 # Environment
 .env
 .env.local
+.env.example
 *.env.*
 
 # Logs and temp files
@@ -67,3 +68,9 @@ htmlcov/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
