@@ -53,23 +53,24 @@ def create_project(project: ProjectCreate, session: Session) -> ProjectResponse:
         raise HTTPException(status_code=400, detail=f"Path does not exist: {project.path}")
     existing = session.exec(select(Project).where(Project.path == project.path)).first()
     if existing:
-        return existing
+        return ProjectResponse.model_validate(existing)
     db_project = Project(name=project.name, path=project.path)
     session.add(db_project)
     session.commit()
     session.refresh(db_project)
-    return db_project
+    return ProjectResponse.model_validate(db_project)
 
 
-def list_projects(session: Session):
-    return session.exec(select(Project)).all()
+def list_projects(session: Session) -> list[ProjectResponse]:
+    projects = session.exec(select(Project)).all()
+    return [ProjectResponse.model_validate(p) for p in projects]
 
 
 def get_project(project_id: int, session: Session) -> ProjectResponse:
     project = session.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
-    return project
+    return ProjectResponse.model_validate(project)
 
 
 # ===== Settings endpoints =====
