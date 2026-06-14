@@ -22,65 +22,67 @@ from app.schemas import (
     ProjectSettingsUpdate, ProjectSettingsResponse,
 )
 
-router = APIRouter()
+# Separate routers
+api_router = APIRouter()
+root_router = APIRouter()
 
 
-# ===== Root =====
-@router.get("/")
+# ===== Root (served at / without prefix) =====
+@root_router.get("/")
 async def root():
     return read_root_html()
 
 
 # ===== Projects =====
-@router.post("/projects", response_model=ProjectResponse, tags=["Projects"])
+@api_router.post("/projects", response_model=ProjectResponse, tags=["Projects"])
 async def post_project(project: ProjectCreate, session: Session = Depends(get_session)):
     return create_project(project, session)
 
 
-@router.get("/projects", response_model=list[ProjectResponse], tags=["Projects"])
+@api_router.get("/projects", response_model=list[ProjectResponse], tags=["Projects"])
 async def get_projects(session: Session = Depends(get_session)):
     return list_projects(session)
 
 
-@router.get("/projects/{project_id}", response_model=ProjectResponse, tags=["Projects"])
+@api_router.get("/projects/{project_id}", response_model=ProjectResponse, tags=["Projects"])
 async def get_project_by_id(project_id: int, session: Session = Depends(get_session)):
     return get_project(project_id, session)
 
 
-@router.delete("/projects/{project_id}", tags=["Projects"])
+@api_router.delete("/projects/{project_id}", tags=["Projects"])
 async def delete_project_endpoint(project_id: int, session: Session = Depends(get_session)):
     return delete_project(project_id, session)
 
 
 # ===== Settings =====
-@router.get("/projects/{project_id}/settings", response_model=ProjectSettingsResponse, tags=["Settings"])
+@api_router.get("/projects/{project_id}/settings", response_model=ProjectSettingsResponse, tags=["Settings"])
 async def get_settings(project_id: int, session: Session = Depends(get_session)):
     return get_project_settings(project_id, session)
 
 
-@router.put("/projects/{project_id}/settings", response_model=ProjectSettingsResponse, tags=["Settings"])
+@api_router.put("/projects/{project_id}/settings", response_model=ProjectSettingsResponse, tags=["Settings"])
 async def update_settings(project_id: int, updates: ProjectSettingsUpdate, session: Session = Depends(get_session)):
     return update_project_settings(project_id, updates, session)
 
 
 # ===== Snapshots =====
-@router.get("/projects/{project_id}/snapshots", response_model=list[SnapshotResponse], tags=["Snapshots"])
+@api_router.get("/projects/{project_id}/snapshots", response_model=list[SnapshotResponse], tags=["Snapshots"])
 async def get_snapshots(project_id: int, session: Session = Depends(get_session)):
     return get_project_snapshots(project_id, session)
 
 
-@router.get("/snapshots/{snapshot_id}", response_model=SnapshotResponse, tags=["Snapshots"])
+@api_router.get("/snapshots/{snapshot_id}", response_model=SnapshotResponse, tags=["Snapshots"])
 async def get_snapshot_endpoint(snapshot_id: int, session: Session = Depends(get_session)):
     return get_snapshot(snapshot_id, session)
 
 
 # ===== Analysis =====
-@router.get("/projects/{project_id}/context", response_model=ContextResponse, tags=["Analysis"])
+@api_router.get("/projects/{project_id}/context", response_model=ContextResponse, tags=["Analysis"])
 async def get_context(project_id: int, session: Session = Depends(get_session)):
     return get_project_context(project_id, session)
 
 
-@router.post("/projects/{project_id}/analyze", response_model=SnapshotResponse, tags=["Analysis"])
+@api_router.post("/projects/{project_id}/analyze", response_model=SnapshotResponse, tags=["Analysis"])
 async def analyze_for_project(
     project_id: int,
     request: AnalyzeRequest,
@@ -90,7 +92,7 @@ async def analyze_for_project(
     return analyze_project_for_project_id(project_id, request, session, use_cache)
 
 
-@router.post("/analyze", response_model=SnapshotResponse, tags=["Analysis"])
+@api_router.post("/analyze", response_model=SnapshotResponse, tags=["Analysis"])
 async def analyze(
     request: AnalyzeRequest,
     session: Session = Depends(get_session),
@@ -100,12 +102,12 @@ async def analyze(
 
 
 # ===== Export =====
-@router.post("/projects/{project_id}/export", response_model=ExportResponse, tags=["Export"])
+@api_router.post("/projects/{project_id}/export", response_model=ExportResponse, tags=["Export"])
 async def export(project_id: int, request: ExportRequest, session: Session = Depends(get_session)):
     return export_project_context(project_id, request, session)
 
 
 # ===== Cache =====
-@router.post("/invalidate-cache", tags=["Cache"])
+@api_router.post("/invalidate-cache", tags=["Cache"])
 async def invalidate(request: InvalidateCacheRequest, session: Session = Depends(get_session)):
     return invalidate_cache(request, session)

@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.database import create_db_and_tables
-from app.api.router import router
+from app.api.router import api_router, root_router
 
 
 # Create FastAPI app
@@ -36,5 +36,6 @@ def on_startup():
 from app.api import STATIC_DIR
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Include API router with prefix
-app.include_router(router, prefix="/api/v1")
+# Include routers
+app.include_router(root_router)
+app.include_router(api_router, prefix="/api/v1")
