@@ -36,5 +36,5 @@ def on_startup():
 from app.api import STATIC_DIR
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-# Include API router
-app.include_router(router)
+# Include API router with prefix
+app.include_router(router, prefix="/api/v1")
