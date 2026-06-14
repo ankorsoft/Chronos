@@ -13,6 +13,7 @@ from app.api.views import (
     get_project_context,
     invalidate_cache,
     analyze_project_endpoint,
+    analyze_project_for_project_id,
     read_root_html,
 )
 from app.schemas import (
@@ -77,6 +78,16 @@ async def get_snapshot_endpoint(snapshot_id: int, session: Session = Depends(get
 @router.get("/projects/{project_id}/context", response_model=ContextResponse, tags=["Analysis"])
 async def get_context(project_id: int, session: Session = Depends(get_session)):
     return get_project_context(project_id, session)
+
+
+@router.post("/projects/{project_id}/analyze", response_model=SnapshotResponse, tags=["Analysis"])
+async def analyze_for_project(
+    project_id: int,
+    request: AnalyzeRequest,
+    session: Session = Depends(get_session),
+    use_cache: bool = Query(True),
+):
+    return analyze_project_for_project_id(project_id, request, session, use_cache)
 
 
 @router.post("/analyze", response_model=SnapshotResponse, tags=["Analysis"])

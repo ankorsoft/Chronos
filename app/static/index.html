@@ -1,113 +1,515 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chronos Context API</title>
+    <title>Chronos Context — Squeeze project context for LLM</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: #1a1a2e; color: #eee; padding: 2rem; line-height: 1.6;
+        :root {
+            --bg: #0f0f1a; --surface: #1a1a2e; --surface2: #16213e; --accent: #e94560;
+            --green: #4caf50; --blue: #2196f3; --text: #eee; --muted: #888; --border: #2a2a4a;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { font-size: 2rem; color: #e94560; margin-bottom: 0.5rem; }
-        h2 { font-size: 1.3rem; color: #0f3460; margin: 1.5rem 0 0.5rem; background: #16213e; padding: 0.75rem 1rem; border-radius: 6px; }
-        .subtitle { color: #888; margin-bottom: 2rem; }
-        .endpoint { background: #16213e; padding: 1rem; margin: 0.75rem 0; border-radius: 6px; border-left: 3px solid #e94560; }
-        .method { display: inline-block; width: 70px; font-weight: bold; font-size: 0.85rem; padding: 2px 6px; border-radius: 3px; text-align: center; }
-        .get { background: #1976d2; color: white; }
-        .post { background: #388e3c; color: white; }
-        .put { background: #f57c00; color: white; }
-        .delete { background: #d32f2f; color: white; }
-        .path { font-family: 'Courier New', monospace; color: #ccc; }
-        .desc { color: #aaa; margin-top: 0.4rem; font-size: 0.95rem; }
-        pre { background: #0f3460; padding: 1rem; border-radius: 6px; overflow-x: auto; margin: 0.5rem 0; font-size: 0.85rem; }
-        .api-docs-link { display: inline-block; background: #e94560; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin-top: 2rem; font-weight: bold; }
-        .api-docs-link:hover { background: #c73e54; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+        
+        /* Header */
+        .header { background: var(--surface); padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { font-size: 1.4rem; color: var(--accent); }
+        
+        /* Tabs */
+        .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 2rem; }
+        .tab { padding: 0.75rem 1.5rem; cursor: pointer; border-bottom: 2px solid transparent; color: var(--muted); transition: all 0.2s; }
+        .tab:hover { color: var(--text); }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        
+        /* Content */
+        .content { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Cards */
+        .card { background: var(--surface); border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; border: 1px solid var(--border); }
+        .card h3 { color: var(--accent); margin-bottom: 1rem; font-size: 1.1rem; }
+        
+        /* Forms */
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.4rem; color: var(--muted); font-size: 0.9rem; }
+        input, textarea, select { width: 100%; padding: 0.6rem 0.8rem; background: var(--bg); border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-size: 0.95rem; }
+        input:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); }
+        
+        /* Buttons */
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-success { background: var(--green); color: white; }
+        .btn-info { background: var(--blue); color: white; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.85rem; }
+        .btn-group { display: flex; gap: 0.5rem; margin: 1rem 0; }
+        
+        /* Project list */
+        .project-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border); }
+        .project-item:last-child { border-bottom: none; }
+        .project-info { flex: 1; }
+        .project-name { font-weight: 600; font-size: 1.05rem; }
+        .project-path { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; }
+        
+        /* Metrics */
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin: 1rem 0; }
+        .metric { text-align: center; padding: 1rem; background: var(--bg); border-radius: 6px; }
+        .metric-value { font-size: 1.8rem; font-weight: bold; color: var(--accent); }
+        .metric-label { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+        
+        /* Progress */
+        .progress-bar { height: 4px; background: var(--bg); border-radius: 2px; overflow: hidden; margin: 0.5rem 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--blue)); transition: width 0.3s; }
+        
+        /* Context display */
+        .context-preview { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 1rem; max-height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.85rem; white-space: pre-wrap; line-height: 1.5; }
+        
+        /* History */
+        .history-item { display: flex; justify-content: space-between; padding: 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; }
+        .history-item:hover { background: var(--surface2); }
+        .history-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+        
+        /* Status */
+        .status { padding: 0.5rem 1rem; border-radius: 4px; margin: 0.5rem 0; font-size: 0.9rem; }
+        .status-success { background: rgba(76, 175, 80, 0.2); color: var(--green); }
+        .status-error { background: rgba(233, 69, 96, 0.2); color: var(--accent); }
+        .status-info { background: rgba(33, 150, 243, 0.2); color: var(--blue); }
+        
+        /* Spinner */
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--muted); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 0.5rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* Empty state */
+        .empty-state { text-align: center; padding: 3rem; color: var(--muted); }
+        .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+        
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay.active { display: flex; }
+        .modal { background: var(--surface); border-radius: 8px; padding: 2rem; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal h3 { color: var(--accent); margin-bottom: 1.5rem; }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="header">
         <h1>&#9200; Chronos Context</h1>
-        <p class="subtitle">AI-powered project analysis & context generation API for LLM integration.</p>
-
-        <h2>Projects</h2>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /projects</span>
-            <p class="desc">List all registered projects.</p>
-        </div>
-        <div class="endpoint">
-            <span class="method post">POST</span><span class="path"> /projects</span>
-            <p class="desc">Register a new project. Body: {"name", "path"}.</p>
-            <pre>{
-  "name": "my-app",
-  "path": "/path/to/project"
-}</pre>
-        </div>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /projects/{project_id}</span>
-            <p class="desc">Get project details.</p>
-        </div>
-        <div class="endpoint">
-            <span class="method delete">DELETE</span><span class="path"> /projects/{project_id}</span>
-            <p class="desc">Delete project and all its data.</p>
-        </div>
-
-        <h2>Snapshots</h2>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /projects/{project_id}/snapshots</span>
-            <p class="desc">List all snapshots for a project.</p>
-        </div>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /snapshots/{snapshot_id}</span>
-            <p class="desc">Get details of a specific snapshot.</p>
-        </div>
-
-        <h2>Analysis</h2>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /projects/{project_id}/context</span>
-            <p class="desc">Get context JSON for a project (auto-analyzes if no snapshot).</p>
-        </div>
-        <div class="endpoint">
-            <span class="method post">POST</span><span class="path"> /analyze</span>
-            <p class="desc">Run analysis. Query param: ?use_cache=true.</p>
-            <pre>{
-  "project_path": "/path/to/project"
-}</pre>
-        </div>
-
-        <h2>Export Formats</h2>
-        <div class="endpoint">
-            <span class="method post">POST</span><span class="path"> /projects/{project_id}/export</span>
-            <p class="desc">Export project context. Body: {"format", "max_tokens", ...}. Formats: txt, md, gpt, claude.</p>
-            <pre>{
-  "format": "gpt",
-  "include_imports": true,
-  "depth": 1
-}</pre>
-        </div>
-
-        <h2>Settings</h2>
-        <div class="endpoint">
-            <span class="method get">GET</span><span class="path"> /projects/{project_id}/settings</span>
-            <p class="desc">Get project settings.</p>
-        </div>
-        <div class="endpoint">
-            <span class="method put">PUT</span><span class="path"> /projects/{project_id}/settings</span>
-            <p class="desc">Update project settings.</p>
-        </div>
-
-        <h2>Cache</h2>
-        <div class="endpoint">
-            <span class="method post">POST</span><span class="path"> /invalidate-cache</span>
-            <p class="desc">Invalidate analysis cache for a project.</p>
-            <pre>{
-  "project_id": 1
-}</pre>
-        </div>
-
-        <a class="api-docs-link" href="/docs">&#9998; OpenAPI Swagger Docs →</a>
+        <span style="color: var(--muted); font-size: 0.85rem;">LLM Project Context Compressor</span>
     </div>
+    
+    <div class="tabs">
+        <div class="tab active" data-tab="projects">&#128193; Projects</div>
+        <div class="tab" data-tab="context">&#128203; Context Preview</div>
+        <div class="tab" data-tab="history">&#128337; History</div>
+        <div class="tab" data-tab="export">&#128230; Export</div>
+    </div>
+    
+    <div class="content">
+        <!-- Projects Tab -->
+        <div class="tab-content active" id="projects">
+            <div class="card">
+                <h3>Add New Project</h3>
+                <div class="form-group">
+                    <label>Project Name</label>
+                    <input type="text" id="projectName" placeholder="my-python-project">
+                </div>
+                <div class="form-group">
+                    <label>Project Path</label>
+                    <input type="text" id="projectPath" placeholder="D:\GIT_HOME\my-project">
+                </div>
+                <button class="btn btn-primary" onclick="addProject()">&#10133; Add Project</button>
+                <div id="addStatus"></div>
+            </div>
+            
+            <div class="card">
+                <h3>Your Projects</h3>
+                <div id="projectList"><div class="empty-state"><div class="empty-state-icon">&#128455;</div><div>No projects yet. Add your first project!</div></div></div>
+            </div>
+        </div>
+        
+        <!-- Context Preview Tab -->
+        <div class="tab-content" id="context">
+            <div class="card">
+                <h3>Selected Project</h3>
+                <div id="selectedProject"><span style="color: var(--muted);">No project selected</span></div>
+            </div>
+            
+            <div class="card">
+                <h3>Analyze</h3>
+                <p style="color: var(--muted); margin-bottom: 1rem;">Generate compressed context from your project. Uses file caching for fast incremental updates.</p>
+                <button class="btn btn-success" onclick="analyzeProject()">&#9654;&#65039; Analyze Project</button>
+                <button class="btn btn-info" onclick="getContext()">&#128065; Load Cached Context</button>
+                <div id="analyzeStatus"></div>
+            </div>
+            
+            <div class="card" id="metricsCard" style="display: none;">
+                <h3>Analysis Metrics</h3>
+                <div class="metrics">
+                    <div class="metric"><div class="metric-value" id="mFiles">-</div><div class="metric-label">Files</div></div>
+                    <div class="metric"><div class="metric-value" id="mLines">-</div><div class="metric-label">Lines</div></div>
+                    <div class="metric"><div class="metric-value" id="mOrig">-</div><div class="metric-label">Original Tokens</div></div>
+                    <div class="metric"><div class="metric-value" id="mComp">-</div><div class="metric-label">Compressed Tokens</div></div>
+                    <div class="metric"><div class="metric-value" id="mSave">-</div><div class="metric-label">Tokens Saved</div></div>
+                    <div class="metric"><div class="metric-value" id="mRatio">-</div><div class="metric-label">Compression %</div></div>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="compBar" style="width: 0%"></div></div>
+            </div>
+            
+            <div class="card" id="contextCard" style="display: none;">
+                <h3>Compressed Context (Markdown)</h3>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary" onclick="copyContext()">&#128203; Copy to Clipboard</button>
+                    <button class="btn btn-sm btn-info" onclick="showExportModal()">&#128230; Export as...</button>
+                </div>
+                <div class="context-preview" id="contextPreview"></div>
+            </div>
+        </div>
+        
+        <!-- History Tab -->
+        <div class="tab-content" id="history">
+            <div class="card">
+                <h3>Snapshots History</h3>
+                <p style="color: var(--muted); margin-bottom: 1rem;">All analysis snapshots for the selected project.</p>
+                <div id="historyList"><div class="empty-state"><div class="empty-state-icon">&#128337;</div><div>No snapshots yet</div></div></div>
+            </div>
+        </div>
+        
+        <!-- Export Tab -->
+        <div class="tab-content" id="export">
+            <div class="card">
+                <h3>Export Context</h3>
+                <p style="color: var(--muted); margin-bottom: 1rem;">Export compressed context in different formats for LLM consumption.</p>
+                
+                <div class="form-group">
+                    <label>Format</label>
+                    <select id="exportFormat">
+                        <option value="gpt">GPT / ChatGPT (System prompt + structure)</option>
+                        <option value="claude">Claude (XML tags format)</option>
+                        <option value="md">Markdown (raw structure)</option>
+                        <option value="txt">Plain Text (raw structure)</option>
+                    </select>
+                </div>
+                
+                <button class="btn btn-primary" onclick="exportContext()">&#128230; Export & Copy</button>
+                <div id="exportStatus"></div>
+            </div>
+            
+            <div class="card">
+                <h3>Export Preview</h3>
+                <div class="context-preview" id="exportPreview" style="min-height: 200px;">Select a format and click Export</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal">
+            <h3>&#9881;&#65039; Project Settings</h3>
+            <div class="form-group">
+                <label>Igнored Patterns (comma-separated)</label>
+                <input type="text" id="ignoredPatterns" placeholder="__pycache__, .git, venv">
+            </div>
+            <div class="form-group">
+                <label>Output Format</label>
+                <select id="outputFormat">
+                    <option value="markdown">Markdown</option>
+                    <option value="text">Plain Text</option>
+                </select>
+            </div>
+            <div class="btn-group" style="justify-content: flex-end; margin-top: 1.5rem;">
+                <button class="btn btn-sm" onclick="closeModal('settingsModal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" onclick="saveSettings()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Copy Confirmation Modal -->
+    <div class="modal-overlay" id="copyModal">
+        <div class="modal">
+            <h3>&#128203; Context Copied!</h3>
+            <p style="color: var(--muted); margin: 1rem 0;">Context is in your clipboard. You can paste it directly into ChatGPT, Claude, or any LLM tool.</p>
+            <button class="btn btn-primary" onclick="document.getElementById('copyModal').classList.remove('active')">Close</button>
+        </div>
+    </div>
+
+<script>
+// ===== State =====
+let currentProjectId = null;
+let currentContext = null;
+let currentMetrics = null;
+
+const API = '/api/v1';
+
+// ===== Utility =====
+function $(id) { return document.getElementById(id); }
+function showStatus(el, type, msg) { el.innerHTML = `<div class="status status-${type}">${msg}</div>`; setTimeout(() => el.innerHTML = '', 5000); }
+function formatNum(n) { return n >= 1000 ? (n/1000).toFixed(1) + 'k' : n.toString(); }
+
+// ===== Tabs =====
+document.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        $('' + t.dataset.tab).classList.add('active');
+    });
+});
+
+// ===== Projects =====
+async function addProject() {
+    const name = $('projectName').value.trim();
+    const path = $('projectPath').value.trim();
+    if (!name || !path) return showStatus($('addStatus'), 'error', 'Please fill in both fields.');
+    
+    try {
+        const res = await fetch(`${API}/projects/`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name, path})
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        currentProjectId = data.id;
+        showStatus($('addStatus'), 'success', `&#10004; Project "${data.name}" added!`);
+        $('projectName').value = '';
+        $('projectPath').value = '';
+        loadProjects();
+    } catch(e) { showStatus($('addStatus'), 'error', `&#10008; ${e.message}`); }
+}
+
+async function loadProjects() {
+    try {
+        const res = await fetch(`${API}/projects/`);
+        const projects = await res.json();
+        const el = $('projectList');
+        
+        if (!projects.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128455;</div><div>No projects yet.</div></div>'; return; }
+        
+        el.innerHTML = projects.map(p => `
+            <div class="project-item ${p.id === currentProjectId ? 'active' : ''}" onclick="selectProject(${p.id})" style="${p.id === currentProjectId ? 'background: var(--surface2); border-left: 3px solid var(--accent);' : ''}">
+                <div class="project-info">
+                    <div class="project-name">${p.name}</div>
+                    <div class="project-path">${p.path}</div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-success" onclick="event.stopPropagation(); currentProjectId=${p.id}; analyzeProject()">Analyze</button>
+                    <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); selectProject(${p.id}); loadHistory(${p.id})">Context</button>
+                    <button class="btn btn-sm" style="background: #d32f2f; color: white;" onclick="event.stopPropagation(); deleteProject(${p.id})">Del</button>
+                </div>
+            </div>`).join('');
+    } catch(e) { $('projectList').innerHTML = `<div class="status status-error">Error loading projects: ${e.message}</div>`; }
+}
+
+function selectProject(id) {
+    currentProjectId = id;
+    loadProjects(); // re-render to show active state
+    loadHistory(id);
+}
+
+async function deleteProject(id) {
+    if (!confirm('Delete project and all its data?')) return;
+    try {
+        await fetch(`${API}/projects/${id}`, { method: 'DELETE' });
+        if (currentProjectId === id) currentProjectId = null;
+        loadProjects();
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ===== Analysis =====
+async function analyzeProject() {
+    if (!currentProjectId) return showStatus($('analyzeStatus'), 'error', 'Please select a project first.');
+    
+    // Get project info first
+    const projRes = await fetch(`${API}/projects/${currentProjectId}`);
+    const project = await projRes.json();
+    
+    showStatus($('analyzeStatus'), 'info', '<span class="spinner"></span> Analyzing... This may take a moment.');
+    $('metricsCard').style.display = 'none';
+    $('contextCard').style.display = 'none';
+    
+    try {
+        const res = await fetch(`${API}/projects/${currentProjectId}/analyze`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({project_path: project.path, use_cache: true})
+        });
+        if (!res.ok) throw new Error(await res.text());
+        
+        const data = await res.json();
+        
+        currentContext = data.structure;
+        currentMetrics = {
+            total_files: data.total_files,
+            total_lines: data.total_lines,
+            original_tokens: data.original_tokens,
+            compressed_tokens: data.compressed_tokens,
+            compression_ratio: data.compression_ratio,
+            tokens_saved: data.tokens_saved || (data.original_tokens - data.compressed_tokens)
+        };
+        
+        // Show metrics
+        $('mFiles').textContent = formatNum(currentMetrics.total_files);
+        $('mLines').textContent = formatNum(currentMetrics.total_lines);
+        $('mOrig').textContent = formatNum(currentMetrics.original_tokens);
+        $('mComp').textContent = formatNum(currentMetrics.compressed_tokens);
+        $('mSave').textContent = formatNum(currentMetrics.tokens_saved);
+        $('mRatio').textContent = currentMetrics.compression_ratio + '%';
+        $('compBar').style.width = currentMetrics.compression_ratio + '%';
+        $('metricsCard').style.display = 'block';
+        
+        // Show context preview
+        $('contextPreview').textContent = currentContext;
+        $('contextCard').style.display = 'block';
+        
+        const incrementalMsg = data.incremental ? ` (Incremental: ${data.changed_files_count || '?'} files changed)` : '';
+        showStatus($('analyzeStatus'), 'success', `<strong>&#10004;</strong> Analysis complete! Saved <strong>${formatNum(currentMetrics.tokens_saved)}</strong> tokens (${currentMetrics.compression_ratio}% reduction)${incrementalMsg}`);
+        
+    } catch(e) { showStatus($('analyzeStatus'), 'error', `&#10008; ${e.message}`); }
+}
+
+async function getContext() {
+    if (!currentProjectId) return showStatus($('analyzeStatus'), 'error', 'Please select a project first.');
+    
+    try {
+        const res = await fetch(`${API}/projects/${currentProjectId}/context`);
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        
+        currentContext = data.structure;
+        currentMetrics = data.metrics;
+        
+        $('mFiles').textContent = formatNum(currentMetrics.total_files);
+        $('mLines').textContent = formatNum(currentMetrics.total_lines);
+        $('mOrig').textContent = formatNum(currentMetrics.original_tokens);
+        $('mComp').textContent = formatNum(currentMetrics.compressed_tokens);
+        $('mSave').textContent = formatNum(currentMetrics.tokens_saved);
+        $('mRatio').textContent = currentMetrics.compression_ratio + '%';
+        $('compBar').style.width = currentMetrics.compression_ratio + '%';
+        $('metricsCard').style.display = 'block';
+        
+        $('contextPreview').textContent = currentContext;
+        $('contextCard').style.display = 'block';
+        
+        showStatus($('analyzeStatus'), 'success', `<strong>&#10004;</strong> Cached context loaded!`);
+    } catch(e) { showStatus($('analyzeStatus'), 'error', `&#10008; ${e.message}`); }
+}
+
+// ===== Context Operations =====
+function copyContext() {
+    if (!currentContext) return;
+    navigator.clipboard.writeText(currentContext).then(() => {
+        $('copyModal').classList.add('active');
+    });
+}
+
+function showExportModal() {
+    // Switch to export tab
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+    document.querySelector('[data-tab="export"]').classList.add('active');
+    $('export').classList.add('active');
+}
+
+async function exportContext() {
+    if (!currentProjectId) return showStatus($('exportStatus'), 'error', 'Please select a project first.');
+    
+    const format = $('exportFormat').value;
+    try {
+        const res = await fetch(`${API}/projects/${currentProjectId}/export`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({format})
+        });
+        if (!res.ok) throw new Error(await res.text());
+        
+        const data = await res.json();
+        
+        // Preview
+        $('exportPreview').textContent = data.content;
+        
+        // Copy to clipboard
+        await navigator.clipboard.writeText(data.content);
+        showStatus($('exportStatus'), 'success', `<strong>&#10004;</strong> Exported as <strong>${data.format}</strong> (${data.tokens_counted} tokens) — copied to clipboard!`);
+    } catch(e) { showStatus($('exportStatus'), 'error', `&#10008; ${e.message}`); }
+}
+
+// ===== History =====
+async function loadHistory(projectId) {
+    try {
+        const res = await fetch(`${API}/projects/${projectId}/snapshots`);
+        const snapshots = await res.json();
+        const el = $('historyList');
+        
+        if (!snapshots.length) { el.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128337;</div><div>No snapshots yet</div></div>'; return; }
+        
+        el.innerHTML = snapshots.map((s, i) => `
+            <div class="history-item" onclick="loadSnapshot(${projectId}, ${s.id})">
+                <div>
+                    <strong>Snap #${s.id}</strong> — ${new Date(s.created_at).toLocaleString()}
+                    <br><span style="color: var(--muted); font-size: 0.85rem;">
+                        ${formatNum(s.total_files)} files · ${formatNum(s.original_tokens)} → ${formatNum(s.compressed_tokens)} tokens · ${s.compression_ratio}% saved
+                    </span>
+                </div>
+                <button class="btn btn-sm btn-primary" onclick="event.stopPropagation(); loadSnapshot(${projectId}, ${s.id})">Load</button>
+            </div>`).join('');
+    } catch(e) { $('historyList').innerHTML = `<div class="status status-error">Error: ${e.message}</div>`; }
+}
+
+async function loadSnapshot(projectId, snapshotId) {
+    try {
+        const res = await fetch(`${API}/snapshots/${snapshotId}`);
+        const s = await res.json();
+        
+        currentProjectId = projectId;
+        currentContext = s.structure;
+        currentMetrics = {
+            total_files: s.total_files, total_lines: s.total_lines,
+            original_tokens: s.original_tokens, compressed_tokens: s.compressed_tokens,
+            compression_ratio: s.compression_ratio, tokens_saved: s.tokens_saved
+        };
+        
+        // Update context view
+        $('mFiles').textContent = formatNum(currentMetrics.total_files);
+        $('mLines').textContent = formatNum(currentMetrics.total_lines);
+        $('mOrig').textContent = formatNum(currentMetrics.original_tokens);
+        $('mComp').textContent = formatNum(currentMetrics.compressed_tokens);
+        $('mSave').textContent = formatNum(currentMetrics.tokens_saved);
+        $('mRatio').textContent = currentMetrics.compression_ratio + '%';
+        $('compBar').style.width = currentMetrics.compression_ratio + '%';
+        $('metricsCard').style.display = 'block';
+        
+        $('contextPreview').textContent = currentContext;
+        $('contextCard').style.display = 'block';
+        
+        // Switch to context tab
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active'));
+        document.querySelector('[data-tab="context"]').classList.add('active');
+        $('context').classList.add('active');
+        
+        // Highlight selected history item
+        loadHistory(projectId);
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ===== Settings =====
+function openSettings(id) { currentProjectId = id; $('settingsModal').classList.add('active'); }
+function closeModal(id) { $(id).classList.remove('active'); }
+
+async function saveSettings() {
+    if (!currentProjectId) return;
+    try {
+        await fetch(`${API}/projects/${currentProjectId}/settings`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                ignored_patterns: $('ignoredPatterns').value,
+                output_format: $('outputFormat').value
+            })
+        });
+        closeModal('settingsModal');
+    } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ===== Init =====
+loadProjects();
+</script>
 </body>
 </html>

@@ -228,6 +228,91 @@ def invalidate_cache(request: InvalidateCacheRequest, session: Session) -> dict:
 
 # ===== Analyze endpoint =====
 
+def get_project_context_with_analyze(project_id: int, session: Session) -> ContextResponse:
+    """Get context for a project, analyzing if no snapshot exists."""
+    project = session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    snapshot = session.exec(
+        select(ProjectSnapshot)
+        .where(ProjectSnapshot.project_id == project_id)
+        .order_by(ProjectSnapshot.created_at.desc())
+    ).first()
+    if not snapshot:
+        result = analyze_project(project.path)
+        return ContextResponse(structure=result["structure"], metrics=result["metrics"])
+    tokens_saved = snapshot.original_tokens - snapshot.compressed_tokens
+    return ContextResponse(
+        structure=snapshot.structure_json,
+        metrics={
+            "total_files": snapshot.total_files, "total_lines": snapshot.total_lines,
+            "original_tokens": snapshot.original_tokens, "compressed_tokens": snapshot.compressed_tokens,
+            "compression_ratio": snapshot.compression_ratio, "tokens_saved": tokens_saved,
+        },
+    )
+
+
+def analyze_project_for_project_id(project_id: int, request: AnalyzeRequest, session: Session, use_cache: bool = True) -> SnapshotResponse:
+    """Analyze using project path from DB."""
+    if not os.path.isdir(request.project_path):
+        raise HTTPException(status_code=400, detail=f"Path does not exist: {request.project_path}")
+
+    result = None
+    cache_hit = False
+
+    if use_cache:
+        cache = AnalysisCache(request.project_path)
+        if cache.is_valid():
+            current_hashes = {}
+            for py_file in Path(request.project_path).rglob("*.py"):
+                if any(p.startswith('.') for p in py_file.parts):
+                    continue
+                if 'venv' in py_file.parts or '__pycache__' in py_file.parts:
+                    continue
+                current_hashes[str(py_file.relative_to(request.project_path))] = hashlib.sha256(py_file.read_bytes()).hexdigest()
+            needs_update, changed = cache.needs_update(current_hashes)
+            if not needs_update:
+                cached = cache.get_cached_result()
+                if cached:
+                    result = cached
+                    cache_hit = True
+
+    if result is None:
+        result = analyze_project(request.project_path, use_cache=False)
+
+    project = session.exec(select(Project).where(Project.path == request.project_path)).first()
+    if not project:
+        project_name = os.path.basename(request.project_path) or "Unnamed Project"
+        project = Project(name=project_name, path=request.project_path)
+        session.add(project)
+        session.commit()
+        session.refresh(project)
+
+    snapshot = ProjectSnapshot(
+        project_id=project.id, structure_json=result["structure"],
+        total_files=result["metrics"]["total_files"], total_lines=result["metrics"]["total_lines"],
+        original_tokens=result["metrics"]["original_tokens"], compressed_tokens=result["metrics"]["compressed_tokens"],
+        compression_ratio=result["metrics"]["compression_ratio"],
+    )
+    session.add(snapshot)
+    session.commit()
+    session.refresh(snapshot)
+
+    response_data = {
+        "id": snapshot.id, "project_id": snapshot.project_id, "structure": snapshot.structure_json,
+        "total_files": snapshot.total_files, "total_lines": snapshot.total_lines,
+        "original_tokens": snapshot.original_tokens, "compressed_tokens": snapshot.compressed_tokens,
+        "compression_ratio": snapshot.compression_ratio, "tokens_saved": result["metrics"]["tokens_saved"],
+        "created_at": snapshot.created_at.isoformat(), "cache_hit": cache_hit,
+    }
+    if cache_hit and result.get("changed_files"):
+        response_data["incremental"] = True
+        response_data["changed_files_count"] = len(result.get("changed_files", []))
+
+    return SnapshotResponse(**response_data)
+
+
 def analyze_project_endpoint(request: AnalyzeRequest, session: Session, use_cache: bool = True) -> SnapshotResponse:
     if not os.path.isdir(request.project_path):
         raise HTTPException(status_code=400, detail=f"Path does not exist: {request.project_path}")
