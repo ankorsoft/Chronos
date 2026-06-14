@@ -53,7 +53,7 @@ def create_project(project: ProjectCreate, session: Session) -> ProjectResponse:
         raise HTTPException(status_code=400, detail=f"Path does not exist: {project.path}")
     existing = session.exec(select(Project).where(Project.path == project.path)).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Project with this path already exists")
+        return existing
     db_project = Project(name=project.name, path=project.path)
     session.add(db_project)
     session.commit()
